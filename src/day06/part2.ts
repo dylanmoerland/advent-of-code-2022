@@ -7,8 +7,8 @@ const result = data
   .reduce((total, line) => {
     const chars = line.split('');
     const startOfPacket = chars.slice(14).findIndex((_, index) => {
-      const slice = chars.slice(index, index + 14);
-      return slice.every((char, n) => !slice.slice(n + 1).includes(char));
+      const packet = chars.slice(index, index + 14);
+      return packet.every((char, n) => !packet.slice(n + 1).includes(char));
     }) + 14;
 
     return total + startOfPacket;
