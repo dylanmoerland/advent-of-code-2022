@@ -2,95 +2,40 @@ import { readText } from '../helpers/readText';
 
 const data = readText('src/day07/data.txt');
 
-interface File {
-  name: string;
-  size: number;
-}
-
-type System = Record<string, any>;
-
-const addFileToSystem = (system: System, pathName: string, file: File) => {
-  const paths = pathName.split('~');
-
-  if (!system[paths[0]]) {
-    system[paths[0]] = {}
-  }
-
-  if (paths.length > 1) {
-    return addFileToSystem(system[paths[0]], paths.slice(1).join('~'), file);
-  }
-
-  system[paths[0]][file.name] = file.size;
-
-  return system;
-}
-
 const { system } = data
   .split('\n')
-  .reduce<{ pathName: string, system: System }>(({ pathName, system }, line) => {
-    if (line === "$ ls") return { pathName, system };
-  
-    const [_, newPathName] = line.match(/cd ([a-z]{1,100})/) || [];
-
-    if (newPathName) return {
-      system,
-      pathName: pathName + `~${newPathName}`
-    }
-
-    if (line.match(/cd ../)) {
-      const paths = pathName.split('~');
+  .reduce<{ system: Record<string, number>, path: string[] }>(({ system, path }, line) => {
+    const [, pathChange] = line.match(/cd (.*)/) || [];
+    if (pathChange) {
       return {
-        system,
-        pathName: paths.slice(0, paths.length - 1).join('~')
+        system: {
+          ...system,
+          ...(pathChange !== '..' ? {[[...path, pathChange].join(' ')]: 0} : {}),
+        },
+        path: pathChange === '..' ? path.slice(0, path.length - 1) : [...path, pathChange]
       }
     }
 
-    const [, fileSize, , fileName] = line.match(/(([0-9]){1,100}) (.*)/) || [];
+    const [, fileSize] = line.match(/(([0-9]){1,100}) (.*)/) || [];
 
-    if (fileSize && fileName) {
-      addFileToSystem(system, pathName, { name: fileName, size: parseInt(fileSize, 10) }) 
-    }
+    if (!fileSize) return { system, path };
 
     return {
-      pathName,
-      system,
+      system: Object.entries(system).reduce<Record<string, number>>((newSystem, [key, value]) => {
+        return {
+          ...newSystem,
+          [key]: key.split(' ').every((p) => path.includes(p)) ? value + parseInt(fileSize, 10) : value,
+        }
+      }, {}),
+      path,
     };
-  }, { pathName: '', system: {} })
+  }, { path: [], system: {} });
 
-const calculateTotalFileSize = (directory: Record<string, any>): number => {
-  const directorySize = Object
-    .entries(directory)
-    .reduce<number>((total, [name, value]) => {
+const spaceNeeded = 30000000 - (70000000 - system['/']);
 
-      if (typeof value === 'object') 
-        return total + calculateTotalFileSize(directory[name]);
+const result = Object.entries(system)
+  .reduce((totalSize, [, value]) => {
+    return value >= spaceNeeded && value < totalSize ? value : totalSize;
+  }, system['/']);
 
-      return total + value;
-    }, 0);
-
-  return directorySize;
-}
-
-const spaceNeeded = 30000000 - (70000000 - calculateTotalFileSize(system));
-let spaceToBeDeleted = 70000000;
-
-const calculateSizeToBeDeleted = (directory: Record<string, any>): number => {
-  const directorySize = Object
-    .entries(directory)
-    .reduce<number>((total, [name, value]) => {
-
-      if (typeof value === 'object') 
-        return total + calculateSizeToBeDeleted(directory[name]);
-
-      return total + value;
-    }, 0);
-
-  if (directorySize >= spaceNeeded && directorySize < spaceToBeDeleted) spaceToBeDeleted = directorySize;
-
-  return directorySize;
-}
-calculateSizeToBeDeleted(system);
-
-
-
-console.log(spaceToBeDeleted);
+console.log(result);
