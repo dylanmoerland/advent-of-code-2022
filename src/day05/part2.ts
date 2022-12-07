@@ -26,7 +26,8 @@ const containers = containerData
 
 const operations = operationData
   .split('\n')
-  .map((line) => line.match(/[0-9]{1,10}/g).map((number) =>{
+  .map((line) => line.match(/[0-9]{1,10}/g)
+  .map((number) => {
     return parseInt(number, 10);
   }));
 

@@ -6,7 +6,7 @@ const result = data
   .split('\n')
   .reduce((total, line) => {
     const chars = line.split('');
-    const startOfPacket =  chars.slice(4).findIndex((_, index) => {
+    const startOfPacket = chars.slice(4).findIndex((_, index) => {
       const packet = chars.slice(index, index + 4);
       return packet.every((char, n) => !packet.slice(n + 1).includes(char));
     }) + 4;

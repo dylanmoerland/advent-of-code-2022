@@ -3,7 +3,7 @@ import { readText } from '../helpers/readText';
 const data = readText('src/day05/data.txt')
 
 const [containerData, operationData] = data
-  .split('\n\n')
+  .split('\n\n');
 
 const containers = containerData
   .split('\n')
@@ -26,7 +26,8 @@ const containers = containerData
 
 const operations = operationData
   .split('\n')
-  .map((line) => line.match(/[0-9]{1,10}/g).map((number) =>{
+  .map((line) => line.match(/[0-9]{1,10}/g)
+  .map((number) => {
     return parseInt(number, 10);
   }));
 
