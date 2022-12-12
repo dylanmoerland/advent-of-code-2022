@@ -2,50 +2,55 @@ import { readText } from '../helpers/readText';
 
 const data = readText('src/day12/data.txt');
 
-interface Coords {
-  x: number;
-  y: number;
-}
+type Coords = [number, number]
 
 const grid = data
   .split('\n')
   .map((line) => line.split(''));
 
 const startingPositions = grid.reduce<Coords[]>((coords, row, y) => {
-  row.forEach((column, x) => {
-    if (column === 'a') {
-      coords.push({ x, y });
-    }
-  })
-  return coords;
+  return [
+    ...coords,
+    ...row.reduce<Coords[]>((rowCoords, column, x) => {
+      if (column === 'a') rowCoords.push([x, y]);
+      return rowCoords
+    }, []),
+  ];
 }, []);
 
-const endY = grid.findIndex((row) => row.includes('E'));
-const endX = grid[endY].findIndex((letter) => letter === 'E');
-
-const buildMatrix = (start: Coords) => {
+const buildMatrix = ([startX, startY]: Coords) => {
   return grid.reduce<number[][]>((accumulator, row, y) => {
     return [
       ...accumulator,
       row.map((_, x) => {
-        if (x === start.x && y === start.y) return 1;
+        if (x === startX && y === startY) return 1;
         else return 0;
       })
     ];
   }, []);
 }
 
-const getValueFromCoords = ({ x, y }: Coords): number => {
+const getValueFromCoords = ([ x, y ]: Coords): number => {
   if (grid[y][x] === 'E') return 27;
   if (grid[y][x] === 'S') return 1;
   return grid[y][x].charCodeAt(0) - 96
 }
 
-const canMoveTo = (matrix: number[][], from: Coords, to: Coords) => {
-  if (matrix[to.y]?.[to.x] !== 0) return false;
+const canMoveTo = (matrix: number[][], [fromX, fromY]: Coords, [toX, toY]: Coords) => {
+  if (matrix[toY]?.[toX] !== 0) return false;
 
-  return getValueFromCoords(from) - getValueFromCoords(to) >= -1;
+  return getValueFromCoords([fromX, fromY]) - getValueFromCoords([toX, toY]) >= -1;
 }
+
+const DIRECTION_LIST = [
+  [1, 0],
+  [-1, 0],
+  [0, -1],
+  [0, 1],
+];
+
+const endY = grid.findIndex((row) => row.includes('E'));
+const endX = grid[endY].findIndex((letter) => letter === 'E');
 
 const getPath = (matrix: number[][]) => {
   let x = endX;
@@ -54,26 +59,14 @@ const getPath = (matrix: number[][]) => {
   let value = matrix[y][x];
 
   while (value > 1) {
-    if (matrix[y - 1]?.[x] === value - 1) {
-      y = y - 1;
-      path.push({ x, y });
-      value -= 1;
-    }
-    if (matrix[y + 1]?.[x] === value - 1) {
-      y = y + 1;
-      path.push({ x, y });
-      value -= 1;
-    }
-    else if (matrix[y]?.[x + 1] === value - 1) {
-      x = x + 1;
-      path.push({ x, y });
-      value -= 1;
-    }
-    else if (matrix[y]?.[x - 1] === value - 1) {
-      x = x - 1;
-      path.push({ x, y });
-      value -= 1;
-    }
+    DIRECTION_LIST.forEach(([xDir, yDir]) => {
+      if (matrix[y + yDir]?.[x + xDir] === value - 1) {
+        y += yDir;
+        x += xDir;
+        path.push({ x, y });
+        value -= 1;
+      }
+    })
   }
   return path;
 }
@@ -93,20 +86,13 @@ const result = startingPositions.reduce<number>((amountOfSteps, startingPosition
     }
 
     for (let y = 0; y < matrix.length; y++) {
-      for (let x= 0; x < matrix[y].length; x++) {
+      for (let x = 0; x < matrix[y].length; x++) {
         if (matrix[y][x] === step) {
-          if (canMoveTo(matrix, {x, y}, { x, y: y - 1 })) {
-            matrix[y - 1][x] = step + 1
-          }
-          if (canMoveTo(matrix, {x, y}, { x, y: y + 1 })) {
-            matrix[y + 1][x] = step + 1
-          }
-          if (canMoveTo(matrix, {x, y}, { x: x - 1, y })) {
-            matrix[y][x - 1] = step + 1
-          }
-          if (canMoveTo(matrix, {x, y}, { x: x + 1, y })) {
-            matrix[y][x + 1] = step + 1
-          }
+          DIRECTION_LIST.forEach(([xDir, yDir]) => {
+            if (canMoveTo(matrix, [x,y], [x + xDir, y + yDir])) {
+              matrix[y + yDir][x + xDir] = step + 1;
+            }
+          })
         } 
       }
     }
@@ -119,4 +105,4 @@ const result = startingPositions.reduce<number>((amountOfSteps, startingPosition
   return path.length - 1 < amountOfSteps ? path.length - 1 : amountOfSteps;
 }, grid.length * grid[0].length);
 
-console.log(result)
+console.log(result);

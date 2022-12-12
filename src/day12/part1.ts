@@ -12,7 +12,7 @@ const matrix = grid.reduce<number[][]>((accumulator, row, y) => {
     ...accumulator,
     row.map((_, x) => {
       if (grid[y][x] === 'E') {
-        end = { x ,y };
+        end = [x, y];
       }
       if (grid[y][x] === 'S') return 1;
       else return 0;
@@ -21,76 +21,61 @@ const matrix = grid.reduce<number[][]>((accumulator, row, y) => {
 }, []);
 
 
-interface Coords {
-  x: number;
-  y: number;
-}
+type Coords = [number, number];
 
-const getValueFromCoords = ({ x, y }: Coords): number => {
+const getValueFromCoords = ([ x, y ]: Coords): number => {
   if (grid[y][x] === 'E') return 27;
   if (grid[y][x] === 'S') return 0;
   return grid[y][x].charCodeAt(0) - 96
 }
 
 const canMoveTo = (from: Coords, to: Coords) => {
-  if (matrix[to.y]?.[to.x] !== 0) return false;
+  if (matrix[to[1]]?.[to[0]] !== 0) return false;
 
   return getValueFromCoords(from) - getValueFromCoords(to) >= -1;
 }
+
+const DIRECTION_LIST = [
+  [1, 0],
+  [-1, 0],
+  [0, -1],
+  [0, 1],
+];
 
 const makeStep = (step: number) => {
   for (let y = 0; y < matrix.length; y++) {
     for (let x= 0; x < matrix[y].length; x++) {
       if (matrix[y][x] === step) {
-        if (canMoveTo({x, y}, { x, y: y - 1 })) {
-          matrix[y - 1][x] = step + 1
-        }
-        if (canMoveTo({x, y}, { x, y: y + 1 })) {
-          matrix[y + 1][x] = step + 1
-        }
-        if (canMoveTo({x, y}, { x: x - 1, y })) {
-          matrix[y][x - 1] = step + 1
-        }
-        if (canMoveTo({x, y}, { x: x + 1, y })) {
-          matrix[y][x + 1] = step + 1
-        }
+        DIRECTION_LIST.forEach(([xDir, yDir]) => {
+          if (canMoveTo([x,y], [x + xDir, y + yDir])) {
+            matrix[y + yDir][x + xDir] = step + 1;
+          }
+        })
       } 
     }
   }
 }
 
 let step = 0;
-while (matrix[end.y][end.x] === 0) {
+while (matrix[end[1]][end[0]] === 0) {
   step += 1;
   makeStep(step);
 }
 
 const getPath = () => {
-  let { x, y } = end;
+  let [ x, y ] = end;
   const path = [{ x, y }];
   let value = matrix[y][x];
 
   while (value > 1) {
-    if (matrix[y - 1]?.[x] === value - 1) {
-      y = y - 1;
-      path.push({ x, y });
-      value -= 1;
-    }
-    if (matrix[y + 1]?.[x] === value - 1) {
-      y = y + 1;
-      path.push({ x, y });
-      value -= 1;
-    }
-    else if (matrix[y]?.[x + 1] === value - 1) {
-      x = x + 1;
-      path.push({ x, y });
-      value -= 1;
-    }
-    else if (matrix[y]?.[x - 1] === value - 1) {
-      x = x - 1;
-      path.push({ x, y });
-      value -= 1;
-    }
+    DIRECTION_LIST.forEach(([xDir, yDir]) => {
+      if (matrix[y + yDir]?.[x + xDir] === value - 1) {
+        y += yDir;
+        x += xDir;
+        path.push({ x, y });
+        value -= 1;
+      }
+    })
   }
   return path;
 }
